@@ -12,6 +12,7 @@ class TelemetryRecordModel(Model):
     presence = IntegerField(default=0)
     severity = CharField()
     created_at = DateTimeField()
+    voltage_ok = BooleanField(default=True)
     is_synced = BooleanField(default=False)
 
     class Meta:

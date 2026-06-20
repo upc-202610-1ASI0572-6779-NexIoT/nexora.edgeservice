@@ -68,7 +68,8 @@ class TelemetryApplicationService:
             water_m3=float(payload.get("water_m3", 0.0)),
             presence=presence,
             severity=evaluation["severity"],
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            voltage_ok=bool(payload.get("voltaje_ok", True))
         )
 
         # 5. Dispatch the record to the Cloud Backend asynchronously

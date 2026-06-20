@@ -61,8 +61,14 @@ class DeviceRepository:
             Device: The :class:`~iam.domain.entities.Device` entity for
             ``device_id='gas-safety-unit-apt-402'``.
         """
-        device, _ = DeviceModel.get_or_create(
+        # Seed the gas safety device
+        DeviceModel.get_or_create(
             device_id="gas-safety-unit-apt-402",
+            defaults={"api_key": "test-api-key-123", "created_at": "2025-06-04T23:23:00Z"},
+        )
+        # Seed the voltage safety device
+        device, _ = DeviceModel.get_or_create(
+            device_id="voltage-safety-unit-apt-402",
             defaults={"api_key": "test-api-key-123", "created_at": "2025-06-04T23:23:00Z"},
         )
         return Device(device.device_id, device.api_key, device.created_at)

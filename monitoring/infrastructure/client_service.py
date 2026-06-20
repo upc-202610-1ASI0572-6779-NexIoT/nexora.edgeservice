@@ -66,7 +66,9 @@ class CloudSaaSGatewayClient:
                 "sensors": {
                     "waterLpm": float(record.water_flow),
                     "gasPpm": float(record.gas_ppm),
-                    "presence": int(record.presence)
+                    "presence": int(record.presence),
+                    "electricityKwh": float(record.electricity_kwh),
+                    "voltageOk": bool(getattr(record, 'voltage_ok', True))
                 }
             }
             # Transparent synchronization via REST API
