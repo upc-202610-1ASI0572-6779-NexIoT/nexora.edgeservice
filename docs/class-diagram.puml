@@ -1,0 +1,182 @@
+@startuml Nexora Edge Service - Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam handwritten false
+skinparam monochrome false
+skinparam shadowing false
+
+' Define packages for bounded contexts
+package "Monitoring Bounded Context" #DEEAFF {
+  ' Domain Layer
+  package "domain" #E2F0FF {
+    class PropertyAsset {
+      id: Optional[int]
+      device_id: str
+      apartment_id: str
+      is_security_mode_armed: bool
+      is_valve_closed: bool
+      is_door_locked: bool
+      water_flow_start_time: Optional[datetime]
+      +__init__(device_id, apartment_id, is_security_mode_armed, is_valve_closed, is_door_locked, id)
+      +process_telemetry(raw_data: Dict): Dict
+      +change_security_mode(arm: bool)
+      +execute_remote_lock(lock: bool)
+    }
+
+    interface IPropertyAssetRepository {
+      +find_by_device_id(device_id: str): Optional[PropertyAsset]
+      +save(asset: PropertyAsset): PropertyAsset
+    }
+  }
+
+  ' Application Layer
+  package "application" #D5E7FF {
+    class TelemetryApplicationService {
+      -repository: IPropertyAssetRepository
+      -cloud_client: CloudSaaSGatewayClient
+      +__init__(repository: IPropertyAssetRepository)
+      +handle_incoming_telemetry(device_id: str, payload: Dict): Dict
+      +remote_toggle_security_mode(device_id: str, arm: bool): bool
+    }
+  }
+
+  ' Infrastructure Layer
+  package "infrastructure" #C9DFFF {
+    class TelemetryRecordModel {
+      id: AutoField
+      device_id: CharField
+      gas_ppm: FloatField
+      water_flow: FloatField
+      electricity_kwh: FloatField
+      water_m3: FloatField
+      presence: IntegerField
+      severity: CharField
+      created_at: DateTimeField
+      voltage_ok: BooleanField
+      is_synced: BooleanField
+    }
+
+    class PropertyAssetStateModel {
+      device_id: CharField
+      apartment_id: CharField
+      is_security_mode_armed: BooleanField
+      is_valve_closed: BooleanField
+      is_door_locked: BooleanField
+    }
+
+    class PeeweePropertyAssetRepository {
+      +find_by_device_id(device_id: str): Optional[PropertyAsset]
+      +save(asset: PropertyAsset): PropertyAsset
+    }
+
+    class CloudSaaSGatewayClient {
+      +dispatch_record_async(record_id: int)
+    }
+  }
+
+  ' Interface Layer
+  package "interfaces" #BCCEFF {
+    class monitoring_api {
+      +ingest_iot_telemetry(): Response
+      +update_security_mode(): Response
+    }
+  }
+}
+
+package "IAM Bounded Context" #FFEBDE {
+  ' Domain Layer
+  package "domain" #FFF2E8 {
+    class Device {
+      device_id: str
+      api_key: str
+      created_at: datetime
+      +__init__(device_id, api_key, created_at)
+    }
+
+    class AuthService {
+      +authenticate(device: Optional[Device]): bool
+    }
+  }
+
+  ' Application Layer
+  package "application" #FFE6D5 {
+    class AuthApplicationService {
+      -device_repository: DeviceRepository
+      -auth_service: AuthService
+      +__init__()
+      +authenticate(device_id: str, api_key: str): bool
+      +get_or_create_test_device(): Device
+    }
+  }
+
+  ' Infrastructure Layer
+  package "infrastructure" #FFDAC1 {
+    class DeviceModel {
+      device_id: CharField
+      api_key: CharField
+      created_at: DateTimeField
+    }
+
+    class DeviceRepository {
+      +find_by_id_and_api_key(device_id: str, api_key: str): Optional[Device]
+      +get_or_create_test_device(): Device
+    }
+  }
+
+  ' Interface Layer
+  package "interfaces" #FFCEAE {
+    class iam_api {
+      +authenticate_request(): Response
+    }
+  }
+}
+
+package "Shared Components" #E8FFE8 {
+  package "infrastructure" #D1FFD1 {
+    class db {
+      +connect()
+      +create_tables(models: List, safe: bool)
+      +close()
+    }
+  }
+}
+
+' Main application entry point
+class app {
+  +setup_edge_services()
+  +run()
+}
+
+' Relationships
+
+' Monitoring bounded context relationships
+TelemetryApplicationService --> IPropertyAssetRepository: uses
+TelemetryApplicationService --> CloudSaaSGatewayClient: uses
+TelemetryApplicationService ..> TelemetryRecordModel: creates
+PeeweePropertyAssetRepository ..|> IPropertyAssetRepository: implements
+PeeweePropertyAssetRepository --> PropertyAssetStateModel: queries
+PeeweePropertyAssetRepository ..> PropertyAsset: maps
+monitoring_api --> TelemetryApplicationService: uses
+
+' IAM bounded context relationships
+AuthApplicationService --> DeviceRepository: uses
+AuthApplicationService --> AuthService: uses
+DeviceRepository --> DeviceModel: queries
+DeviceRepository ..> Device: maps
+iam_api --> AuthApplicationService: uses
+
+' Cross-context relationships
+monitoring_api ..> iam_api: uses authenticate_request
+TelemetryApplicationService ..> PropertyAsset: orchestrates
+
+' Database and bootstrap relationships
+TelemetryRecordModel --> db: uses
+PropertyAssetStateModel --> db: uses
+DeviceModel --> db: uses
+app ..> db: initializes tables on first request
+app ..> monitoring_api: registers
+app ..> iam_api: registers
+
+@enduml
