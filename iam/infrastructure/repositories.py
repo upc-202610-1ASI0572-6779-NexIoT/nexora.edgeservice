@@ -65,5 +65,10 @@ class DeviceRepository:
             device_id="gas-safety-unit-apt-402",
             defaults={"api_key": "test-api-key-123", "created_at": "2025-06-04T23:23:00Z"},
         )
+        # Seed the water safety device
+        DeviceModel.get_or_create(
+            device_id="water-safety-unit-apt-402",
+            defaults={"api_key": "test-api-key-123", "created_at": "2025-06-04T23:23:00Z"},
+        )
         return Device(device.device_id, device.api_key, device.created_at)
 
