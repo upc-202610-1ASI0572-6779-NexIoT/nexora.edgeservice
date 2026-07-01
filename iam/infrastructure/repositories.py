@@ -48,28 +48,35 @@ class DeviceRepository:
         except peewee.DoesNotExist:
             return None
 
-    @staticmethod
-    def get_or_create_test_device() -> Device:
-        """Retrieve the default test device, creating it if absent.
+@staticmethod
+def get_or_create_test_device() -> Device:
+    """Retrieve the default test device, creating it if absent."""
 
-        Performs an idempotent ``get_or_create`` against the ``devices``
-        table.  The test device uses well-known, hard-coded credentials
-        intended for local development and integration testing only — these
-        credentials must never be used in a production environment.
+    # Seed the gas safety device
+    DeviceModel.get_or_create(
+        device_id="gas-safety-unit-apt-402",
+        defaults={
+            "api_key": "test-api-key-123",
+            "created_at": "2025-06-04T23:23:00Z",
+        },
+    )
 
-        Returns:
-            Device: The :class:`~iam.domain.entities.Device` entity for
-            ``device_id='gas-safety-unit-apt-402'``.
-        """
-        # Seed the gas safety device
-        DeviceModel.get_or_create(
-            device_id="gas-safety-unit-apt-402",
-            defaults={"api_key": "test-api-key-123", "created_at": "2025-06-04T23:23:00Z"},
-        )
-        # Seed the voltage safety device
-        device, _ = DeviceModel.get_or_create(
-            device_id="voltage-safety-unit-apt-402",
-            defaults={"api_key": "test-api-key-123", "created_at": "2025-06-04T23:23:00Z"},
-        )
-        return Device(device.device_id, device.api_key, device.created_at)
+    # Seed the voltage safety device
+    device, _ = DeviceModel.get_or_create(
+        device_id="voltage-safety-unit-apt-402",
+        defaults={
+            "api_key": "test-api-key-123",
+            "created_at": "2025-06-04T23:23:00Z",
+        },
+    )
 
+    # Seed the water safety device
+    DeviceModel.get_or_create(
+        device_id="water-safety-unit-apt-402",
+        defaults={
+            "api_key": "test-api-key-123",
+            "created_at": "2025-06-04T23:23:00Z",
+        },
+    )
+
+    return Device(device.device_id, device.api_key, device.created_at)
